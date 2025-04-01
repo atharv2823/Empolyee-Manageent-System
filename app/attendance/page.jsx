@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bar } from "react-chartjs-2";
+import { format } from "date-fns";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -21,32 +22,108 @@ ChartJS.register(
 );
 
 export default function AttendancePage() {
-  const [date, setDate] = useState("23/12/2020");
+  const [date, setDate] = useState(new Date());
+  const [timeFilter, setTimeFilter] = useState("day");
+  const [selectedEmployee, setSelectedEmployee] = useState("all");
+ const [attendanceData, setAttendanceData] = useState({
+   labels: [],
+   datasets: [
+     {
+       label: "Attendance",
+       data: [],
+       backgroundColor: "rgba(147, 197, 253, 0.8)",
+     },
+   ],
+ });
 
-  const workTrendsData = {
-    labels: [
-      "Present",
-      "Absent",
-      "On Time",
-      "Late",
-      "Overtime",
-      "Remote",
-      "Permission",
-      "Transfer",
-    ],
-    datasets: [
-      {
-        label: "November",
-        data: [100, 65, 45, 30, 85, 35, 25, 70],
-        backgroundColor: "rgba(203, 213, 225, 0.8)",
-      },
-      {
-        label: "December",
-        data: [105, 70, 50, 25, 90, 40, 20, 65],
-        backgroundColor: "rgba(147, 197, 253, 0.8)",
-      },
-    ],
+  // Mock employee data
+  const employees = [
+    { id: 1, name: "John Doe", department: "IT" },
+    { id: 2, name: "Jane Smith", department: "HR" },
+    { id: 3, name: "Mike Johnson", department: "Marketing" },
+  ];
+
+  // Mock attendance data generator
+  const generateAttendanceData = (filter, employeeId) => {
+    let labels = [];
+    let datasets = [];
+
+    switch (filter) {
+      case "day":
+        labels = [
+          "9AM",
+          "10AM",
+          "11AM",
+          "12PM",
+          "1PM",
+          "2PM",
+          "3PM",
+          "4PM",
+          "5PM",
+        ];
+        datasets = [
+          {
+            label: "Hours Worked",
+            data: labels.map(() => Math.floor(Math.random() * 100)),
+            backgroundColor: "rgba(147, 197, 253, 0.8)",
+          },
+        ];
+        break;
+
+      case "week":
+        labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+        datasets = [
+          {
+            label: "Attendance",
+            data: labels.map(() => Math.floor(Math.random() * 100)),
+            backgroundColor: "rgba(147, 197, 253, 0.8)",
+          },
+        ];
+        break;
+
+      case "month":
+        labels = Array.from({ length: 31 }, (_, i) => `Day ${i + 1}`);
+        datasets = [
+          {
+            label: "Attendance",
+            data: labels.map(() => Math.floor(Math.random() * 100)),
+            backgroundColor: "rgba(147, 197, 253, 0.8)",
+          },
+        ];
+        break;
+
+      case "year":
+        labels = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        datasets = [
+          {
+            label: "Attendance Rate",
+            data: labels.map(() => Math.floor(Math.random() * 100)),
+            backgroundColor: "rgba(147, 197, 253, 0.8)",
+          },
+        ];
+        break;
+    }
+
+    return { labels, datasets };
   };
+
+  useEffect(() => {
+    const data = generateAttendanceData(timeFilter, selectedEmployee);
+    setAttendanceData(data);
+  }, [timeFilter, selectedEmployee]);
 
   const options = {
     responsive: true,
@@ -54,161 +131,129 @@ export default function AttendancePage() {
       legend: {
         position: "top",
       },
+      title: {
+        display: true,
+        text: `Attendance ${
+          timeFilter.charAt(0).toUpperCase() + timeFilter.slice(1)
+        }ly Report`,
+      },
     },
     scales: {
       y: {
         beginAtZero: true,
+        max: 100,
+        title: {
+          display: true,
+          text: "Attendance Rate (%)",
+        },
       },
     },
   };
 
   return (
     <div className="lg:ml-64 p-6">
-      {/* Search and Filter Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Search"
-            className="px-4 py-2 rounded-md border"
-          />
-          <button className="p-2 bg-gray-100 rounded-md">
-            <svg
-              className="w-5 h-5 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </button>
-        </div>
+      {/* Filter Controls */}
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <div className="flex items-center gap-4">
-          <button className="p-2">
-            <svg
-              className="w-5 h-5 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-          </button>
+          <select
+            value={selectedEmployee}
+            onChange={(e) => setSelectedEmployee(e.target.value)}
+            className="px-4 py-2 rounded-md border"
+          >
+            <option value="all">All Employees</option>
+            {employees.map((emp) => (
+              <option key={emp.id} value={emp.id}>
+                {emp.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex gap-2">
+            {["day", "week", "month", "year"].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setTimeFilter(filter)}
+                className={`px-4 py-2 rounded-md ${
+                  timeFilter === filter
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700"
+                }`}
+              >
+                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <input
+          type="date"
+          value={format(date, "yyyy-MM-dd")}
+          onChange={(e) => setDate(new Date(e.target.value))}
+          className="px-4 py-2 rounded-md border"
+        />
+      </div>
+
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="p-4 bg-white rounded-lg shadow">
+          <h3 className="text-sm text-gray-500">Total Working Days</h3>
+          <p className="text-2xl font-bold">22</p>
+        </div>
+        <div className="p-4 bg-white rounded-lg shadow">
+          <h3 className="text-sm text-gray-500">Present Days</h3>
+          <p className="text-2xl font-bold">18</p>
+        </div>
+        <div className="p-4 bg-white rounded-lg shadow">
+          <h3 className="text-sm text-gray-500">Absent Days</h3>
+          <p className="text-2xl font-bold">4</p>
+        </div>
+        <div className="p-4 bg-white rounded-lg shadow">
+          <h3 className="text-sm text-gray-500">Attendance Rate</h3>
+          <p className="text-2xl font-bold">82%</p>
         </div>
       </div>
 
-      {/* Overview Section */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">OVERVIEW</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-          <div className="p-4 bg-white rounded-lg shadow">
-            <p className="text-sm text-gray-500">DATE</p>
-            <p className="text-lg font-semibold">{date}</p>
-          </div>
-          <div className="p-4 bg-white rounded-lg shadow">
-            <p className="text-sm text-gray-500">TOTAL EMPLOYEES</p>
-            <p className="text-lg font-semibold">115</p>
-          </div>
-          <div className="p-4 bg-white rounded-lg shadow">
-            <p className="text-sm text-gray-500">PRESENT</p>
-            <p className="text-lg font-semibold">90</p>
-          </div>
-          <div className="p-4 bg-white rounded-lg shadow">
-            <p className="text-sm text-gray-500">ON LEAVE</p>
-            <p className="text-lg font-semibold">15</p>
-          </div>
-          <div className="p-4 bg-white rounded-lg shadow">
-            <p className="text-sm text-gray-500">LATE</p>
-            <p className="text-lg font-semibold">10</p>
-          </div>
-        </div>
-
-        {/* Rates Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-white rounded-lg shadow">
-            <h3 className="text-sm font-semibold mb-2">ABSENCE RATE</h3>
-            <p className="text-2xl font-bold">8%</p>
-            <p className="text-xs text-green-500">↑ 3% from previous month</p>
-          </div>
-          <div className="p-4 bg-white rounded-lg shadow">
-            <h3 className="text-sm font-semibold mb-2">OVERTIME RATE</h3>
-            <p className="text-2xl font-bold">8%</p>
-            <p className="text-xs text-green-500">↑ 3% from previous month</p>
-          </div>
-          <div className="p-4 bg-white rounded-lg shadow">
-            <h3 className="text-sm font-semibold mb-2">LATECOMER RATE</h3>
-            <p className="text-2xl font-bold">8%</p>
-            <p className="text-xs text-green-500">↑ 3% from previous month</p>
-          </div>
-        </div>
+      {/* Attendance Graph */}
+      <div className="bg-white p-4 rounded-lg shadow mb-6">
+        <Bar data={attendanceData} options={options} height={80} />
       </div>
 
-      {/* Work Trends Graph */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">WORK TRENDS</h2>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <Bar data={workTrendsData} options={options} height={100} />
-        </div>
-      </div>
-
-      {/* Bottom Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Holidays Section */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">HOLIDAYS</h2>
-            <span className="text-sm text-gray-500">23 DECEMBER 2020</span>
-          </div>
-          <div className="space-y-4">
-            {/* Holiday entries */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-200"></div>
-                <div>
-                  <p className="font-medium">John Doe</p>
-                  <p className="text-sm text-gray-500">Sick leave</p>
-                </div>
-              </div>
-              <span className="text-sm">Today</span>
-            </div>
-            {/* Add more holiday entries as needed */}
-          </div>
-        </div>
-
-        {/* Remote Work Section */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">REMOTE WORK</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">23 DECEMBER 2020</span>
-              <span className="text-sm font-semibold">7/100</span>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {/* Remote work entries */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-200"></div>
-                <div>
-                  <p className="font-medium">John Doe</p>
-                  <p className="text-sm text-gray-500">Designer</p>
-                </div>
-              </div>
-              <span className="text-sm">Today</span>
-            </div>
-            {/* Add more remote work entries as needed */}
-          </div>
-        </div>
+      {/* Attendance Details Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Check In
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Check Out
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {[...Array(5)].map((_, index) => (
+              <tr key={index}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {format(new Date(2024, 0, index + 1), "dd MMM yyyy")}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">09:00 AM</td>
+                <td className="px-6 py-4 whitespace-nowrap">06:00 PM</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    Present
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

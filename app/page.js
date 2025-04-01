@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Sidebar from "./componenets/Sidebar";
+import supabase from "@/supabase/supabase";
 
 import {
   Dialog,
@@ -10,47 +11,91 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+import * as React from "react";
+
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 export default function Home() {
-   const [employeeStats] = useState({
-     totalEmployees: 248,
-     activeProjects: 12,
-     departments: 8,
-     attendance: "95%",
-   });
+  const [employeeStats] = useState({
+    totalEmployees: 248,
+    activeProjects: 12,
+    departments: 8,
+    attendance: "95%",
+  });
 
-   // Add new state for dialog
-   const [isDialogOpen, setIsDialogOpen] = useState(false);
-   const [newEmployee, setNewEmployee] = useState({
-     name: "",
-     number: "",
-     dob: "",
-     address: "",
-     email: "",
-     department: "IT",
-   });
+  // Add new state for dialog
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+ const [newEmployee, setNewEmployee] = useState({
+   name: "",
+   number: "",
+   dob: "",
+   address: "",
+   email: "",
+   department: "",
+   hire_date: "",
+   role: "", // Add this new field
+ });
 
-   // Add new handlers
-   const handleInputChange = (e) => {
-     const { name, value } = e.target;
-     setNewEmployee((prev) => ({
-       ...prev,
-       [name]: value,
-     }));
-   };
+  // Add new handlers
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewEmployee((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-   const handleSubmit = (e) => {
-     e.preventDefault();
-     console.log("New Employee Data:", newEmployee);
-     setIsDialogOpen(false);
-     setNewEmployee({
-       name: "",
-       number: "",
-       dob: "",
-       address: "",
-       email: "",
-       department: "IT",
-     });
-   };
+  // Add this function before handleSubmit
+  const generateEmployeeId = () => {
+    const prefix = "EMP";
+    const timestamp = Date.now().toString().slice(-4);
+    const random = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0");
+    return `${prefix}${timestamp}${random}`;
+  };
+
+  // Update handleSubmit function
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const employeeId = generateEmployeeId();
+      const { data, error } = await supabase.from("employee").insert([
+        {
+          emp_id: employeeId,
+          name: newEmployee.name,
+          email: newEmployee.email,
+          number: newEmployee.number,
+          dob: newEmployee.dob,
+          address: newEmployee.address,
+          department: newEmployee.department,
+          hire_date: newEmployee.hire_date,
+          role: newEmployee.role, // Add this new field
+        },
+      ]);
+
+      console.log("Submitted Data", { ...newEmployee, emp_id: employeeId });
+
+      if (error) throw error;
+
+      console.log("Employee added successfully:", data);
+      setNewEmployee({
+        name: "",
+        number: "",
+        dob: "",
+        address: "",
+        email: "",
+        department: "IT",
+        hire_date: "",
+        role: "", // Add this to reset
+      });
+
+      alert(`Employee added successfully! Employee ID: ${employeeId}`);
+    } catch (error) {
+      console.error("Error adding employee:", error.message);
+      alert("Error adding employee. Please try again.");
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -71,129 +116,142 @@ export default function Home() {
                     Add Employee
                   </button>
                 </DialogTrigger>
+
                 <DialogContent className="sm:max-w-[425px]">
-                  <form className="space-y-4 mt-4">
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <div className="flex justify-between items-center mb-4">
-                          <h2 className="text-xl font-semibold text-gray-900">
-                            Add New Employee
-                          </h2>
-                          <button
-                            onClick={() => setIsDialogOpen(false)}
-                            className="text-gray-500 hover:text-gray-700"
-                          >
-                            <svg
-                              className="w-6 h-6"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Name
-                            </label>
-                            <input
-                              type="text"
-                              name="name"
-                              value={newEmployee.name}
-                              onChange={handleInputChange}
-                              className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Phone Number
-                            </label>
-                            <input
-                              type="tel"
-                              name="number"
-                              value={newEmployee.number}
-                              onChange={handleInputChange}
-                              className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Date of Birth
-                            </label>
-                            <input
-                              type="date"
-                              name="dob"
-                              value={newEmployee.dob}
-                              onChange={handleInputChange}
-                              className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Address
-                            </label>
-                            <textarea
-                              name="address"
-                              value={newEmployee.address}
-                              onChange={handleInputChange}
-                              rows="3"
-                              className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              required
-                            ></textarea>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Email
-                            </label>
-                            <input
-                              type="email"
-                              name="email"
-                              value={newEmployee.email}
-                              onChange={handleInputChange}
-                              className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Department
-                            </label>
-                            <select
-                              name="department"
-                              value={newEmployee.department}
-                              onChange={handleInputChange}
-                              className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              required
-                            >
-                              <option value="IT">IT</option>
-                              <option value="HR">HR</option>
-                              <option value="Marketing">Marketing</option>
-                              <option value="Finance">Finance</option>
-                              <option value="Operations">Operations</option>
-                            </select>
-                          </div>
-                          <div className="flex justify-end space-x-3 pt-4">
-                            <button
-                              type="submit"
-                              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                            >
-                              Add Employee
-                            </button>
-                          </div>
-                        </form>
+                  <DialogHeader>
+                    <DialogTitle>Add New Employee</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                    <ScrollArea className="h-[400px] pr-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={newEmployee.name}
+                          onChange={handleInputChange}
+                          className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        />
                       </div>
-                    </div>
-                    {/* ... rest of the form fields remain the same ... */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          name="number"
+                          value={newEmployee.number}
+                          onChange={handleInputChange}
+                          className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Date of Birth
+                        </label>
+                        <input
+                          type="date"
+                          name="dob"
+                          value={newEmployee.dob}
+                          onChange={handleInputChange}
+                          className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Address
+                        </label>
+                        <textarea
+                          name="address"
+                          value={newEmployee.address}
+                          onChange={handleInputChange}
+                          rows="3"
+                          className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        ></textarea>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={newEmployee.email}
+                          onChange={handleInputChange}
+                          className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Hire Date
+                        </label>
+                        <input
+                          type="date"
+                          name="hire_date"
+                          value={newEmployee.hire_date}
+                          onChange={handleInputChange}
+                          className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Department
+                        </label>
+                        <select
+                          name="department"
+                          value={newEmployee.department}
+                          onChange={handleInputChange}
+                          className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        >
+                          <option value="IT">IT</option>
+                          <option value="HR">HR</option>
+                          <option value="Marketing">Marketing</option>
+                          <option value="Finance">Finance</option>
+                          <option value="Operations">Operations</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Role
+                        </label>
+                        <select
+                          name="role"
+                          value={newEmployee.role}
+                          onChange={handleInputChange}
+                          className="mt-1 text-black block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        >
+                          <option value="">Select Role</option>
+                          <option value="Manager">Manager</option>
+                          <option value="Team Lead">Team Lead</option>
+                          <option value="Senior Developer">
+                            Senior Developer
+                          </option>
+                          <option value="Developer"> Junior Developer</option>
+                          <option value="Developer"> Developer Intern</option>
+                          <option value="Designer">Designer</option>
+                          <option value="HR Specialist">HR Specialist</option>
+                          <option value="Marketing Specialist">
+                            Marketing Specialist
+                          </option>
+                          <option value="Financial Analyst">
+                            Financial Analyst
+                          </option>
+                          <option value="Operations Manager">
+                            Operations Manager
+                          </option>
+                        </select>
+                      </div>
+                    </ScrollArea>
                     <div className="flex justify-end space-x-3 pt-4">
                       <DialogTrigger asChild>
                         <button
@@ -203,6 +261,7 @@ export default function Home() {
                           Cancel
                         </button>
                       </DialogTrigger>
+
                       <button
                         type="submit"
                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
